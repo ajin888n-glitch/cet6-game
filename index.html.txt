@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>CET6 词汇特训大冒险</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&family=Nunito:wght@600;800;900&display=swap');
+    * {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
+      user-select: none;
+    }
+    .font-game {
+      font-family: 'Fredoka', -apple-system, sans-serif;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+    .animate-shake {
+      animation: shake 0.35s ease-in-out;
+    }
+    .touch-btn:active {
+      transform: scale(0.96);
+    }
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-[100dvh] flex flex-col justify-between overflow-x-hidden">
+  <canvas id="confettiCanvas" class="fixed inset-0 pointer-events-none z-50"></canvas>
+
+  <!-- 顶部状态栏 -->
+  <header class="w-full bg-slate-900/95 backdrop-blur border-b border-slate-800 sticky top-0 z-40 px-3 py-2.5">
+    <div class="max-w-md mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-2 cursor-pointer" onclick="switchMode('home')">
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-slate-950 font-black font-game text-base shadow">
+          6
+        </div>
+        <div>
+          <div class="text-sm font-black font-game text-white leading-tight flex items-center gap-1">
+            CET6<span class="text-[10px] px-1.5 py-0.2 rounded bg-amber-400/20 text-amber-300 font-bold">词汇特训</span>
+          </div>
+          <div class="text-[10px] text-slate-400 leading-tight">大学英语六级通关冲刺</div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <div class="flex items-center bg-slate-800/90 rounded-full px-2.5 py-1 border border-slate-700">
+          <span class="text-[11px] font-black text-amber-300 mr-1.5">Lv.<span id="userLevel">1</span></span>
+          <div class="w-12 bg-slate-950 rounded-full h-1.5 overflow-hidden mr-1">
+            <div id="xpProgressBar" class="bg-amber-400 h-full w-0 transition-all duration-300"></div>
+          </div>
+          <span id="xpText" class="text-[9px] text-slate-400 font-mono">0/80</span>
+        </div>
+
+        <button onclick="openNotebookModal()" class="relative p-2 rounded-xl bg-slate-800 border border-slate-700 text-amber-300 touch-btn">
+          <i class="fa-solid fa-bookmark text-xs"></i>
+          <span id="notebookBadge" class="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold hidden">0</span>
+        </button>
+
+        <button id="soundToggleBtn" onclick="toggleSound()" class="p-2 rounded-xl bg-slate-800 border border-slate-700 text-emerald-400 touch-btn">
+          <i id="soundIcon" class="fa-solid fa-volume-high text-xs"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主体交互区 -->
+  <main class="flex-1 max-w-md w-full mx-auto px-3 py-3 flex flex-col justify-center">
+
+    <!-- 视图1: 首页与模式选择 -->
+    <div id="homeView" class="w-full space-y-3.5">
+      <div class="text-center space-y-1">
+        <div class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px] font-bold">
+          <i class="fa-solid fa-graduation-cap"></i> 六级高频核心考点
+        </div>
+        <h2 class="text-xl font-black text-white">选择强化模式</h2>
+        <p class="text-xs text-slate-400">紧扣大纲高频重难点词汇，多维记忆</p>
+      </div>
+
+      <!-- 分类筛选器 -->
+      <div class="bg-slate-900/90 p-2 rounded-xl border border-slate-800 flex items-center justify-between gap-1 overflow-x-auto">
+        <button onclick="setCategory('all', this)" class="category-btn px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-400 text-slate-950 whitespace-nowrap">全部六级</button>
+        <button onclick="setCategory('academic', this)" class="category-btn px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-800 text-slate-300 whitespace-nowrap">学术思辨</button>
+        <button onclick="setCategory('economy', this)" class="category-btn px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-800 text-slate-300 whitespace-nowrap">社会经济</button>
+        <button onclick="setCategory('science', this)" class="category-btn px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-800 text-slate-300 whitespace-nowrap">科技生态</button>
+        <button onclick="setCategory('dynamic', this)" class="category-btn px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-800 text-slate-300 whitespace-nowrap">状态变化</button>
+      </div>
+
+      <!-- 模式卡片 -->
+      <div class="grid grid-cols-1 gap-2.5">
+        <div onclick="startGame('rush')" class="bg-slate-900 border border-slate-800 hover:border-amber-400/50 p-3.5 rounded-2xl flex items-center justify-between touch-btn cursor-pointer">
+          <div class="flex items-center gap-3">
+            <div class="w-11 h-11 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg flex-shrink-0">
+              <i class="fa-solid fa-bolt-lightning"></i>
+            </div>
+            <div>
+              <div class="text-sm font-bold text-white">极限速答 (4选1)</div>
+              <div class="text-[11px] text-slate-400 mt-0.5">读音释义瞬时反应，适合考前极速过词</div>
+            </div>
+          </div>
+          <i class="fa-solid fa-angle-right text-slate-500 text-xs mr-1"></i>
+        </div>
+
+        <div onclick="startGame('spelling')" class="bg-slate-900 border border-slate-800 hover:border-cyan-400/50 p-3.5 rounded-2xl flex items-center justify-between touch-btn cursor-pointer">
+          <div class="flex items-center gap-3">
+            <div class="w-11 h-11 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-lg flex-shrink-0">
+              <i class="fa-solid fa-spell-check"></i>
+            </div>
+            <div>
+              <div class="text-sm font-bold text-white">精准拼写 (写译强化)</div>
+              <div class="text-[11px] text-slate-400 mt-0.5">听音辨义字母拼装，专攻六级写作翻译生词</div>
+            </div>
+          </div>
+          <i class="fa-solid fa-angle-right text-slate-500 text-xs mr-1"></i>
+        </div>
+
+        <div onclick="startGame('match')" class="bg-slate-900 border border-slate-800 hover:border-emerald-400/50 p-3.5 rounded-2xl flex items-center justify-between touch-btn cursor-pointer">
+          <div class="flex items-center gap-3">
+            <div class="w-11 h-11 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg flex-shrink-0">
+              <i class="fa-solid fa-cubes"></i>
+            </div>
+            <div>
+              <div class="text-sm font-bold text-white">双语消消乐 (配对联想)</div>
+              <div class="text-[11px] text-slate-400 mt-0.5">中英文卡片快速对对碰，强化语义映射</div>
+            </div>
+          </div>
+          <i class="fa-solid fa-angle-right text-slate-500 text-xs mr-1"></i>
+        </div>
+      </div>
+
+      <div class="bg-slate-900/60 rounded-xl p-2.5 border border-slate-800/80 text-[11px] text-slate-400 flex items-center gap-2">
+        <i class="fa-solid fa-circle-info text-amber-400 text-xs"></i>
+        <span>答错的考纲生词将自动沉淀至生词本，支持点击小喇叭复听。</span>
+      </div>
+    </div>
+
+    <!-- 视图2: 极限速答 (4选1) -->
+    <div id="rushQuizView" class="w-full hidden space-y-3">
+      <div class="flex items-center justify-between bg-slate-900 px-3 py-2 rounded-xl border border-slate-800">
+        <button onclick="exitToHome()" class="text-xs text-slate-400 hover:text-white flex items-center gap-1">
+          <i class="fa-solid fa-chevron-left"></i>返回
+        </button>
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-bold text-amber-400"><i class="fa-solid fa-fire mr-0.5"></i><span id="rushCombo">0</span>连击</span>
+          <span class="text-xs font-bold text-emerald-400">得分 <span id="rushScore">0</span></span>
+        </div>
+        <span id="rushProgress" class="text-xs font-mono text-slate-400">1/10</span>
+      </div>
+
+      <!-- 倒计时进度条 -->
+      <div class="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden border border-slate-800">
+        <div id="rushTimeBar" class="h-full bg-amber-400 w-full transition-all duration-100 ease-linear"></div>
+      </div>
+
+      <!-- 单词题干卡片 -->
+      <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 text-center space-y-2 relative overflow-hidden">
+        <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-800 text-amber-300 text-[10px] font-mono">
+          CET-6 · <span id="rushPos">adj.</span>
+        </div>
+        <div class="flex items-center justify-center gap-2">
+          <h2 id="rushWord" class="text-2xl font-black font-game text-white tracking-wide">Plausible</h2>
+          <button onclick="speakCurrentWord()" class="w-8 h-8 rounded-full bg-amber-400/20 text-amber-300 flex items-center justify-center text-xs touch-btn">
+            <i class="fa-solid fa-volume-high"></i>
+          </button>
+        </div>
+        <div id="rushPhonetic" class="text-xs text-slate-400 font-mono">/ˈplɔːzəbl/</div>
+      </div>
+
+      <!-- 选项按钮组 (手机单列大按钮，防止误触) -->
+      <div id="rushOptionsGrid" class="flex flex-col gap-2"></div>
+    </div>
+
+    <!-- 视图3: 拼写特工 (字母槽位自适应) -->
+    <div id="spellingView" class="w-full hidden space-y-3">
+      <div class="flex items-center justify-between bg-slate-900 px-3 py-2 rounded-xl border border-slate-800">
+        <button onclick="exitToHome()" class="text-xs text-slate-400 hover:text-white flex items-center gap-1">
+          <i class="fa-solid fa-chevron-left"></i>返回
+        </button>
+        <span class="text-xs font-bold text-cyan-400">得分 <span id="spellScore">0</span></span>
+        <span id="spellProgress" class="text-xs font-mono text-slate-400">1/8</span>
+      </div>
+
+      <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-center space-y-1.5">
+        <div class="text-[11px] text-slate-400">结合词义与语境拼出单词：</div>
+        <div class="flex items-center justify-center gap-2">
+          <span id="spellMeaning" class="text-base font-black text-amber-300">似乎合理的，可信的</span>
+          <button onclick="speakCurrentWord()" class="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-300 flex items-center justify-center text-xs touch-btn">
+            <i class="fa-solid fa-volume-high"></i>
+          </button>
+        </div>
+        <div id="spellExample" class="text-[11px] text-slate-400 italic px-2">"A plausible explanation for the anomaly."</div>
+      </div>
+
+      <!-- 拼写槽位 -->
+      <div id="spellSlots" class="flex flex-wrap items-center justify-center gap-1.5 py-1 min-h-[48px]"></div>
+
+      <!-- 备选字母池 -->
+      <div class="bg-slate-900/90 p-3 rounded-2xl border border-slate-800 space-y-2">
+        <div class="text-[10px] text-slate-400 text-center">点击字母填入上方槽位</div>
+        <div id="spellBank" class="flex flex-wrap items-center justify-center gap-1.5"></div>
+      </div>
+
+      <!-- 控制按键 -->
+      <div class="grid grid-cols-3 gap-2 pt-1">
+        <button onclick="undoLastLetter()" class="py-2.5 rounded-xl bg-slate-800 text-xs font-bold text-slate-300 border border-slate-700 touch-btn flex items-center justify-center gap-1">
+          <i class="fa-solid fa-delete-left"></i> 退格
+        </button>
+        <button onclick="resetSpellingWord()" class="py-2.5 rounded-xl bg-slate-800 text-xs font-bold text-rose-300 border border-slate-700 touch-btn flex items-center justify-center gap-1">
+          <i class="fa-solid fa-rotate-right"></i> 清空
+        </button>
+        <button onclick="giveSpellingHint()" class="py-2.5 rounded-xl bg-cyan-950 text-xs font-bold text-cyan-300 border border-cyan-700/50 touch-btn flex items-center justify-center gap-1">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> 提示一字
+        </button>
+      </div>
+    </div>
+
+    <!-- 视图4: 消消配对 (3列紧凑网格适配手机屏幕高度) -->
+    <div id="matchView" class="w-full hidden space-y-3">
+      <div class="flex items-center justify-between bg-slate-900 px-3 py-2 rounded-xl border border-slate-800">
+        <button onclick="exitToHome()" class="text-xs text-slate-400 hover:text-white flex items-center gap-1">
+          <i class="fa-solid fa-chevron-left"></i>返回
+        </button>
+        <div class="flex items-center gap-3">
+          <span class="text-xs text-slate-400">匹配: <span id="matchPairsCount" class="font-bold text-emerald-400">0/6</span></span>
+          <span class="text-xs text-slate-400">步数: <span id="matchMoves" class="font-bold text-white">0</span></span>
+        </div>
+        <button onclick="restartMatchGame()" class="text-xs text-amber-400 touch-btn">
+          <i class="fa-solid fa-arrows-rotate mr-0.5"></i>重置
+        </button>
+      </div>
+
+      <div class="text-center text-[11px] text-slate-400">点击英文卡与对应中文卡完成消除</div>
+
+      <!-- 3列4行卡片矩阵 -->
+      <div id="matchGrid" class="grid grid-cols-3 gap-2"></div>
+    </div>
+
+    <!-- 视图5: 结算弹窗 -->
+    <div id="resultModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+      <div class="bg-slate-900 border border-slate-800 w-full max-w-xs rounded-2xl p-5 text-center space-y-4 shadow-2xl">
+        <div class="w-14 h-14 rounded-full bg-amber-400/20 text-amber-300 text-2xl flex items-center justify-center mx-auto">
+          <i class="fa-solid fa-award"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-black text-white">特训达成！</h3>
+          <p class="text-xs text-slate-400 mt-0.5">六级词汇掌握度稳步提升</p>
+        </div>
+
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1.5 text-xs">
+          <div class="flex justify-between text-slate-300">
+            <span>本轮得分</span>
+            <span id="finalScore" class="font-bold text-amber-400 font-mono">0</span>
+          </div>
+          <div class="flex justify-between text-slate-300">
+            <span>经验奖励</span>
+            <span id="earnedXp" class="font-bold text-emerald-400 font-mono">+0 XP</span>
+          </div>
+          <div class="flex justify-between text-slate-300">
+            <span>最高连击</span>
+            <span id="finalMaxCombo" class="font-bold text-sky-400 font-mono">-</span>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <button onclick="replayCurrentGame()" class="w-full py-2.5 rounded-xl bg-amber-400 text-slate-950 font-black text-xs touch-btn">
+            再来一轮
+          </button>
+          <button onclick="exitToHome()" class="w-full py-2.5 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs border border-slate-700 touch-btn">
+            返回主菜单
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 视图6: 生词本弹窗 -->
+    <div id="notebookModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+      <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-2xl p-4 space-y-3 shadow-2xl flex flex-col max-h-[82vh]">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg bg-amber-400/20 text-amber-300 flex items-center justify-center text-xs font-bold">
+              <i class="fa-solid fa-bookmark"></i>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-white">六级生词巩固本</h3>
+            </div>
+          </div>
+          <button onclick="closeNotebookModal()" class="text-slate-400 hover:text-white p-1">
+            <i class="fa-solid fa-xmark text-sm"></i>
+          </button>
+        </div>
+
+        <div id="notebookList" class="flex-1 overflow-y-auto space-y-2 pr-1 py-1"></div>
+
+        <div class="border-t border-slate-800 pt-2 flex items-center justify-between">
+          <button onclick="clearNotebook()" class="text-[11px] text-rose-400 font-bold">
+            <i class="fa-solid fa-trash-can mr-1"></i>清空全部
+          </button>
+          <button onclick="closeNotebookModal()" class="px-3 py-1.5 rounded-lg bg-slate-800 text-xs font-bold text-white border border-slate-700">
+            关闭
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="text-center py-2 text-[10px] text-slate-500 border-t border-slate-900 bg-slate-950">
+    CET-6 英语六级真题高频核心词库 · 离线发音优化
+  </footer>
+
+  <script>
+    // 权威大学英语六级 (CET-6) 核心高频词库
+    const CET6_DATABASE = [
+      // 学术思辨 (academic)
+      { id: 1, word: "Paradox", pos: "n.", phonetic: "/ˈpærədɒks/", meaning: "悖论，自相矛盾的人或事", example: "It is a curious paradox that drinking hot tea cools you down.", category: "academic" },
+      { id: 2, word: "Plausible", pos: "adj.", phonetic: "/ˈplɔːzəbl/", meaning: "似乎合理的，可信的", example: "She could not come up with a plausible explanation.", category: "academic" },
+      { id: 3, word: "Ambiguous", pos: "adj.", phonetic: "/æmˈbɪɡjuəs/", meaning: "模棱两可的，含糊不清的", example: "The conclusion of the report remains ambiguous.", category: "academic" },
+      { id: 4, word: "Intricate", pos: "adj.", phonetic: "/ˈɪntrɪkət/", meaning: "错综复杂的，精致的", example: "The plot of the novel is extremely intricate.", category: "academic" },
+      { id: 5, word: "Advocate", pos: "v./n.", phonetic: "/ˈædvəkeɪt/", meaning: "提倡，主张；拥护者", example: "Experts advocate regular physical exercise.", category: "academic" },
+      { id: 6, word: "Conspicuous", pos: "adj.", phonetic: "/kənˈspɪkjuəs/", meaning: "显眼的，引人注目的", example: "He felt conspicuous in his bright red jacket.", category: "academic" },
+
+      // 社会经济 (economy)
+      { id: 7, word: "Fluctuate", pos: "v.", phonetic: "/ˈflʌktʃueɪt/", meaning: "波动，上下起伏", example: "Stock prices fluctuate according to market demand.", category: "economy" },
+      { id: 8, word: "Vulnerable", pos: "adj.", phonetic: "/ˈvʌlnərəbl/", meaning: "脆弱的，易受攻击的", example: "Small businesses are particularly vulnerable to inflation.", category: "economy" },
+      { id: 9, word: "Chronic", pos: "adj.", phonetic: "/ˈkrɒnɪk/", meaning: "长期的，慢性的，顽固的", example: "The country suffers from chronic economic shortages.", category: "economy" },
+      { id: 10, word: "Prevalent", pos: "adj.", phonetic: "/ˈprevələnt/", meaning: "流行的，普遍存在的", example: "Depression remains prevalent among urban professionals.", category: "economy" },
+      { id: 11, word: "Arbitrary", pos: "adj.", phonetic: "/ˈɑːbɪtrəri/", meaning: "任意的，武断的，专横的", example: "The committee made an arbitrary decision.", category: "economy" },
+      { id: 12, word: "Feasible", pos: "adj.", phonetic: "/ˈfiːzəbl/", meaning: "可行的，行得通的", example: "It is feasible to complete the project by June.", category: "economy" },
+
+      // 科技生态 (science)
+      { id: 13, word: "Compatible", pos: "adj.", phonetic: "/kəmˈpætəbl/", meaning: "兼容的，志趣相投的", example: "The software is fully compatible with mobile devices.", category: "science" },
+      { id: 14, word: "Indigenous", pos: "adj.", phonetic: "/ɪnˈdɪdʒənəs/", meaning: "本土的，原产的", example: "Several bird species are indigenous to this island.", category: "science" },
+      { id: 15, word: "Subtle", pos: "adj.", phonetic: "/ˈsʌtl/", meaning: "微妙的，不易察觉的", example: "There is a subtle distinction between the two concepts.", category: "science" },
+      { id: 16, word: "Degrade", pos: "v.", phonetic: "/dɪˈɡreɪd/", meaning: "降解，退化，降级", example: "Plastics do not degrade quickly in nature.", category: "science" },
+      { id: 17, word: "Simulate", pos: "v.", phonetic: "/ˈsɪmjuleɪt/", meaning: "模拟，模仿，假装", example: "Computer models simulate global climate patterns.", category: "science" },
+      { id: 18, word: "Cohesive", pos: "adj.", phonetic: "/kəʊˈhiːsɪv/", meaning: "有凝聚力的，紧密团结的", example: "A cohesive group accomplishes goals more smoothly.", category: "science" },
+
+      // 状态变化 (dynamic)
+      { id: 19, word: "Deteriorate", pos: "v.", phonetic: "/dɪˈtɪəriəreɪt/", meaning: "恶化，变坏", example: "His health began to deteriorate rapidly.", category: "dynamic" },
+      { id: 20, word: "Diminish", pos: "v.", phonetic: "/dɪˈmɪnɪʃ/", meaning: "减少，减小，贬低", example: "Nothing could diminish the impact of his discovery.", category: "dynamic" },
+      { id: 21, word: "Turbulent", pos: "adj.", phonetic: "/ˈtɜːbjələnt/", meaning: "动荡的，汹涌的，混乱的", example: "The country endured a turbulent transition period.", category: "dynamic" },
+      { id: 22, word: "Manifest", pos: "v./adj.", phonetic: "/ˈmænɪfest/", meaning: "显现，表现；显然的", example: "His nervousness was manifest in his shaking hands.", category: "dynamic" },
+      { id: 23, word: "Spontaneous", pos: "adj.", phonetic: "/spɒnˈteɪniəs/", meaning: "自发的，无意识的", example: "The crowd erupted into spontaneous applause.", category: "dynamic" },
+      { id: 24, word: "Sustain", pos: "v.", phonetic: "/səˈsteɪn/", meaning: "维持，保持，承受", example: "We must adapt policies to sustain economic growth.", category: "dynamic" }
+    ];
+
+    let userStats = {
+      level: 1,
+      xp: 0,
+      soundEnabled: true,
+      notebook: []
+    };
+
+    let selectedCategory = 'all';
+    let currentGameMode = 'rush';
+    let currentWordIndex = 0;
+    let gameWordQueue = [];
+    let currentScore = 0;
+    let currentCombo = 0;
+    let maxCombo = 0;
+
+    let rushTimer = null;
+    let rushTimeLeft = 100;
+
+    let spellingTargetWord = null;
+    let userSpelledLetters = [];
+    let availableBankLetters = [];
+
+    let matchCards = [];
+    let firstSelectedCard = null;
+    let secondSelectedCard = null;
+    let matchLocked = false;
+    let matchedPairsCount = 0;
+    let matchMovesCount = 0;
+
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) audioCtx = new AudioContextClass();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playTone(freq, type, duration, delay = 0) {
+      if (!userStats.soundEnabled) return;
+      try {
+        initAudio();
+        if (!audioCtx) return;
+        setTimeout(() => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+          gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start();
+          osc.stop(audioCtx.currentTime + duration);
+        }, delay * 1000);
+      } catch (e) {}
+    }
+
+    function soundSuccess() {
+      playTone(523.25, 'triangle', 0.1, 0);
+      playTone(659.25, 'triangle', 0.1, 0.08);
+      playTone(783.99, 'triangle', 0.18, 0.15);
+    }
+
+    function soundError() {
+      playTone(280, 'sawtooth', 0.15, 0);
+      playTone(210, 'sawtooth', 0.2, 0.1);
+    }
+
+    function soundPop() {
+      playTone(480, 'sine', 0.05, 0);
+    }
+
+    function soundCelebration() {
+      [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
+        playTone(f, 'sine', 0.2, i * 0.08);
+      });
+    }
+
+    function speakWord(text) {
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'en-US';
+      utter.rate = 0.88;
+      window.speechSynthesis.speak(utter);
+    }
+
+    function speakCurrentWord() {
+      if (currentGameMode === 'rush' && gameWordQueue[currentWordIndex]) {
+        speakWord(gameWordQueue[currentWordIndex].word);
+      } else if (currentGameMode === 'spelling' && spellingTargetWord) {
+        speakWord(spellingTargetWord.word);
+      }
+    }
+
+    function toggleSound() {
+      userStats.soundEnabled = !userStats.soundEnabled;
+      const icon = document.getElementById('soundIcon');
+      if (userStats.soundEnabled) {
+        icon.className = 'fa-solid fa-volume-high text-xs text-emerald-400';
+        soundPop();
+      } else {
+        icon.className = 'fa-solid fa-volume-xmark text-xs text-slate-500';
+      }
+    }
+
+    function setCategory(cat, btnElem) {
+      selectedCategory = cat;
+      document.querySelectorAll('.category-btn').forEach(b => {
+        b.className = 'category-btn px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-800 text-slate-300 whitespace-nowrap';
+      });
+      btnElem.className = 'category-btn px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-400 text-slate-950 whitespace-nowrap';
+      soundPop();
+    }
+
+    function getFilteredWords() {
+      if (selectedCategory === 'all') return [...CET6_DATABASE];
+      return CET6_DATABASE.filter(item => item.category === selectedCategory);
+    }
+
+    function exitToHome() {
+      clearInterval(rushTimer);
+      document.getElementById('rushQuizView').classList.add('hidden');
+      document.getElementById('spellingView').classList.add('hidden');
+      document.getElementById('matchView').classList.add('hidden');
+      document.getElementById('resultModal').classList.add('hidden');
+      document.getElementById('homeView').classList.remove('hidden');
+      soundPop();
+    }
+
+    function switchMode(mode) {
+      if (mode === 'home') exitToHome();
+    }
+
+    function startGame(mode) {
+      soundPop();
+      if (mode === 'rush') startRushGame();
+      else if (mode === 'spelling') startSpellingGame();
+      else if (mode === 'match') startMatchGame();
+    }
+
+    // 模式1: 极限速答
+    function startRushGame() {
+      currentGameMode = 'rush';
+      const pool = getFilteredWords();
+      gameWordQueue = shuffleArray(pool).slice(0, 10);
+      currentWordIndex = 0;
+      currentScore = 0;
+      currentCombo = 0;
+      maxCombo = 0;
+
+      document.getElementById('homeView').classList.add('hidden');
+      document.getElementById('rushQuizView').classList.remove('hidden');
+      document.getElementById('rushScore').innerText = '0';
+      document.getElementById('rushCombo').innerText = '0';
+
+      loadRushQuestion();
+    }
+
+    function loadRushQuestion() {
+      clearInterval(rushTimer);
+      if (currentWordIndex >= gameWordQueue.length) {
+        finishGame();
+        return;
+      }
+
+      const item = gameWordQueue[currentWordIndex];
+      document.getElementById('rushProgress').innerText = `${currentWordIndex + 1}/${gameWordQueue.length}`;
+      document.getElementById('rushWord').innerText = item.word;
+      document.getElementById('rushPos').innerText = item.pos;
+      document.getElementById('rushPhonetic').innerText = item.phonetic;
+
+      speakWord(item.word);
+
+      const optionsContainer = document.getElementById('rushOptionsGrid');
+      optionsContainer.innerHTML = '';
+
+      const distractorPool = CET6_DATABASE.filter(w => w.id !== item.id);
+      const wrongItems = shuffleArray(distractorPool).slice(0, 3);
+      const options = shuffleArray([item, ...wrongItems]);
+
+      options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'w-full text-left px-3.5 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-100 border border-slate-800 font-semibold text-xs transition-all flex items-center justify-between touch-btn';
+        btn.innerHTML = `
+          <span class="truncate pr-2">${opt.meaning}</span>
+          <i class="fa-regular fa-circle text-slate-500 text-[10px] flex-shrink-0"></i>
+        `;
+        btn.onclick = () => handleRushAnswer(opt.id === item.id, btn, item);
+        optionsContainer.appendChild(btn);
+      });
+
+      startRushTimer();
+    }
+
+    function startRushTimer() {
+      rushTimeLeft = 100;
+      const bar = document.getElementById('rushTimeBar');
+      bar.style.width = '100%';
+      bar.className = 'h-full bg-amber-400 w-full transition-all duration-100 ease-linear';
+
+      const intervalMs = 100;
+      const totalDuration = 8000;
+      const decrement = (intervalMs / totalDuration) * 100;
+
+      rushTimer = setInterval(() => {
+        rushTimeLeft -= decrement;
+        if (rushTimeLeft <= 0) {
+          clearInterval(rushTimer);
+          bar.style.width = '0%';
+          handleRushAnswer(false, null, gameWordQueue[currentWordIndex]);
+        } else {
+          bar.style.width = `${rushTimeLeft}%`;
+          if (rushTimeLeft < 30) {
+            bar.className = 'h-full bg-rose-500 w-full transition-all duration-100 ease-linear';
+          }
+        }
+      }, intervalMs);
+    }
+
+    function handleRushAnswer(isCorrect, btnElem, currentWord) {
+      clearInterval(rushTimer);
+      const options = document.querySelectorAll('#rushOptionsGrid button');
+      options.forEach(b => b.disabled = true);
+
+      if (isCorrect) {
+        soundSuccess();
+        currentCombo++;
+        if (currentCombo > maxCombo) maxCombo = currentCombo;
+        const speedBonus = Math.floor(rushTimeLeft / 12);
+        currentScore += (20 + (currentCombo - 1) * 5 + speedBonus);
+
+        document.getElementById('rushScore').innerText = currentScore;
+        document.getElementById('rushCombo').innerText = currentCombo;
+
+        if (btnElem) {
+          btnElem.classList.remove('bg-slate-900', 'border-slate-800');
+          btnElem.classList.add('bg-emerald-950', 'border-emerald-500', 'text-emerald-200');
+          btnElem.querySelector('i').className = 'fa-solid fa-check text-emerald-400 text-xs';
+        }
+      } else {
+        soundError();
+        currentCombo = 0;
+        document.getElementById('rushCombo').innerText = '0';
+        addToNotebook(currentWord);
+
+        if (btnElem) {
+          btnElem.classList.remove('bg-slate-900', 'border-slate-800');
+          btnElem.classList.add('bg-rose-950', 'border-rose-500', 'text-rose-200', 'animate-shake');
+          btnElem.querySelector('i').className = 'fa-solid fa-xmark text-rose-400 text-xs';
+        }
+
+        options.forEach(b => {
+          if (b.innerText.includes(currentWord.meaning)) {
+            b.classList.add('border-emerald-500', 'bg-emerald-950/70', 'text-emerald-300');
+          }
+        });
+      }
+
+      setTimeout(() => {
+        currentWordIndex++;
+        loadRushQuestion();
+      }, 900);
+    }
+
+    // 模式2: 精准拼写
+    function startSpellingGame() {
+      currentGameMode = 'spelling';
+      const pool = getFilteredWords();
+      // 筛选适合手机屏宽展示的词长 (<= 10个字母)
+      const validPool = pool.filter(w => w.word.length <= 10);
+      gameWordQueue = shuffleArray(validPool).slice(0, 8);
+      currentWordIndex = 0;
+      currentScore = 0;
+
+      document.getElementById('homeView').classList.add('hidden');
+      document.getElementById('spellingView').classList.remove('hidden');
+      document.getElementById('spellScore').innerText = '0';
+
+      loadSpellingRound();
+    }
+
+    function loadSpellingRound() {
+      if (currentWordIndex >= gameWordQueue.length) {
+        finishGame();
+        return;
+      }
+
+      spellingTargetWord = gameWordQueue[currentWordIndex];
+      userSpelledLetters = [];
+
+      document.getElementById('spellProgress').innerText = `${currentWordIndex + 1}/${gameWordQueue.length}`;
+      document.getElementById('spellMeaning').innerText = spellingTargetWord.meaning;
+      document.getElementById('spellExample').innerText = `"${spellingTargetWord.example}"`;
+
+      speakWord(spellingTargetWord.word);
+
+      const letters = spellingTargetWord.word.toUpperCase().split('');
+      availableBankLetters = shuffleArray(letters.map((char, idx) => ({ id: idx, char: char, used: false })));
+
+      renderSpellingUI();
+    }
+
+    function renderSpellingUI() {
+      const targetLen = spellingTargetWord.word.length;
+      const slotsContainer = document.getElementById('spellSlots');
+      slotsContainer.innerHTML = '';
+
+      // 动态适配字符大小与槽位宽
+      const slotSizeClass = targetLen >= 9 ? 'w-8 h-10 text-base' : 'w-9 h-11 text-lg';
+
+      for (let i = 0; i < targetLen; i++) {
+        const slot = document.createElement('div');
+        const filled = userSpelledLetters[i];
+        slot.className = `${slotSizeClass} rounded-xl flex items-center justify-center font-game font-black border-2 transition-all ${
+          filled ? 'bg-cyan-950 border-cyan-400 text-cyan-300 shadow scale-105' : 'bg-slate-900 border-dashed border-slate-700 text-slate-600'
+        }`;
+        slot.innerText = filled ? filled.char : '_';
+        slotsContainer.appendChild(slot);
+      }
+
+      const bankContainer = document.getElementById('spellBank');
+      bankContainer.innerHTML = '';
+
+      const bankSizeClass = targetLen >= 9 ? 'w-8 h-10 text-base' : 'w-9 h-11 text-lg';
+
+      availableBankLetters.forEach(item => {
+        const bubble = document.createElement('button');
+        bubble.className = `${bankSizeClass} rounded-xl font-game font-black flex items-center justify-center border transition touch-btn ${
+          item.used
+            ? 'opacity-20 cursor-not-allowed bg-slate-900 border-slate-800 text-slate-600'
+            : 'bg-slate-800 hover:bg-cyan-700 text-white border-slate-700 active:border-cyan-400'
+        }`;
+        bubble.innerText = item.char;
+        bubble.disabled = item.used;
+        bubble.onclick = () => pickLetter(item);
+        bankContainer.appendChild(bubble);
+      });
+    }
+
+    function pickLetter(item) {
+      if (item.used) return;
+      soundPop();
+      item.used = true;
+      userSpelledLetters.push(item);
+      renderSpellingUI();
+
+      if (userSpelledLetters.length === spellingTargetWord.word.length) {
+        checkSpellingResult();
+      }
+    }
+
+    function undoLastLetter() {
+      if (userSpelledLetters.length === 0) return;
+      soundPop();
+      const removed = userSpelledLetters.pop();
+      const bankItem = availableBankLetters.find(b => b.id === removed.id);
+      if (bankItem) bankItem.used = false;
+      renderSpellingUI();
+    }
+
+    function resetSpellingWord() {
+      soundPop();
+      userSpelledLetters = [];
+      availableBankLetters.forEach(b => b.used = false);
+      renderSpellingUI();
+    }
+
+    function giveSpellingHint() {
+      const cleanWord = spellingTargetWord.word.toUpperCase();
+      const nextIndex = userSpelledLetters.length;
+      if (nextIndex >= cleanWord.length) return;
+
+      const neededChar = cleanWord[nextIndex];
+      const matchInBank = availableBankLetters.find(b => !b.used && b.char === neededChar);
+
+      if (matchInBank) {
+        currentScore = Math.max(0, currentScore - 10);
+        document.getElementById('spellScore').innerText = currentScore;
+        pickLetter(matchInBank);
+      }
+    }
+
+    function checkSpellingResult() {
+      const target = spellingTargetWord.word.toUpperCase();
+      const input = userSpelledLetters.map(l => l.char).join('');
+
+      if (input === target) {
+        soundSuccess();
+        currentScore += 30;
+        document.getElementById('spellScore').innerText = currentScore;
+
+        const slots = document.querySelectorAll('#spellSlots div');
+        slots.forEach(s => {
+          s.classList.remove('border-cyan-400');
+          s.classList.add('border-emerald-400', 'bg-emerald-950', 'text-emerald-300');
+        });
+
+        setTimeout(() => {
+          currentWordIndex++;
+          loadSpellingRound();
+        }, 900);
+      } else {
+        soundError();
+        addToNotebook(spellingTargetWord);
+
+        const slots = document.querySelectorAll('#spellSlots div');
+        slots.forEach(s => s.classList.add('animate-shake', 'border-rose-400', 'bg-rose-950'));
+
+        setTimeout(() => {
+          resetSpellingWord();
+        }, 800);
+      }
+    }
+
+    // 模式3: 消消配对
+    function startMatchGame() {
+      currentGameMode = 'match';
+      const pool = getFilteredWords();
+      const selectedWords = shuffleArray(pool).slice(0, 6);
+
+      currentScore = 0;
+      matchedPairsCount = 0;
+      matchMovesCount = 0;
+      firstSelectedCard = null;
+      secondSelectedCard = null;
+      matchLocked = false;
+
+      document.getElementById('homeView').classList.add('hidden');
+      document.getElementById('matchView').classList.remove('hidden');
+      document.getElementById('matchPairsCount').innerText = `0/6`;
+      document.getElementById('matchMoves').innerText = '0';
+
+      matchCards = [];
+      selectedWords.forEach((wordObj, i) => {
+        matchCards.push({
+          uid: `en_${i}`,
+          wordId: wordObj.id,
+          text: wordObj.word,
+          type: 'en',
+          rawObj: wordObj,
+          matched: false
+        });
+        matchCards.push({
+          uid: `cn_${i}`,
+          wordId: wordObj.id,
+          text: wordObj.meaning,
+          type: 'cn',
+          rawObj: wordObj,
+          matched: false
+        });
+      });
+
+      matchCards = shuffleArray(matchCards);
+      renderMatchGrid();
+    }
+
+    function renderMatchGrid() {
+      const grid = document.getElementById('matchGrid');
+      grid.innerHTML = '';
+
+      matchCards.forEach(card => {
+        const cardElem = document.createElement('div');
+        cardElem.id = `card_${card.uid}`;
+        cardElem.className = `h-20 rounded-xl flex flex-col items-center justify-center text-center p-1.5 cursor-pointer border transition-all duration-200 select-none touch-btn ${
+          card.matched
+            ? 'opacity-0 pointer-events-none scale-75'
+            : 'bg-slate-900 border-slate-800 hover:border-amber-400/80 shadow'
+        }`;
+
+        if (card.type === 'en') {
+          cardElem.innerHTML = `
+            <span class="text-[9px] text-amber-400 font-mono mb-0.5">EN</span>
+            <span class="text-xs font-black text-white font-game break-all line-clamp-1">${card.text}</span>
+          `;
+        } else {
+          cardElem.innerHTML = `
+            <span class="text-[9px] text-emerald-400 font-mono mb-0.5">释义</span>
+            <span class="text-[11px] font-semibold text-slate-200 line-clamp-2 leading-tight">${card.text}</span>
+          `;
+        }
+
+        cardElem.onclick = () => handleCardClick(card, cardElem);
+        grid.appendChild(cardElem);
+      });
+    }
+
+    function handleCardClick(card, cardElem) {
+      if (matchLocked || card.matched) return;
+      if (firstSelectedCard && firstSelectedCard.card.uid === card.uid) return;
+
+      soundPop();
+      if (card.type === 'en') speakWord(card.rawObj.word);
+
+      cardElem.classList.remove('border-slate-800');
+      cardElem.classList.add('border-amber-400', 'bg-amber-400/10');
+
+      if (!firstSelectedCard) {
+        firstSelectedCard = { card, elem: cardElem };
+      } else {
+        secondSelectedCard = { card, elem: cardElem };
+        matchMovesCount++;
+        document.getElementById('matchMoves').innerText = matchMovesCount;
+        evaluatePair();
+      }
+    }
+
+    function evaluatePair() {
+      matchLocked = true;
+      const c1 = firstSelectedCard.card;
+      const c2 = secondSelectedCard.card;
+
+      const isMatch = c1.wordId === c2.wordId && c1.type !== c2.type;
+
+      if (isMatch) {
+        soundSuccess();
+        matchedPairsCount++;
+        document.getElementById('matchPairsCount').innerText = `${matchedPairsCount}/6`;
+
+        firstSelectedCard.elem.classList.add('border-emerald-400', 'bg-emerald-950');
+        secondSelectedCard.elem.classList.add('border-emerald-400', 'bg-emerald-950');
+
+        setTimeout(() => {
+          c1.matched = true;
+          c2.matched = true;
+          firstSelectedCard.elem.classList.add('opacity-0', 'scale-75');
+          secondSelectedCard.elem.classList.add('opacity-0', 'scale-75');
+          resetCardSelection();
+
+          if (matchedPairsCount >= 6) {
+            currentScore = Math.max(100, 240 - (matchMovesCount - 6) * 12);
+            setTimeout(finishGame, 500);
+          }
+        }, 450);
+      } else {
+        soundError();
+        addToNotebook(c1.rawObj);
+        addToNotebook(c2.rawObj);
+
+        firstSelectedCard.elem.classList.add('animate-shake', 'border-rose-400');
+        secondSelectedCard.elem.classList.add('animate-shake', 'border-rose-400');
+
+        setTimeout(() => {
+          firstSelectedCard.elem.classList.remove('border-amber-400', 'bg-amber-400/10', 'animate-shake', 'border-rose-400');
+          firstSelectedCard.elem.classList.add('border-slate-800');
+          secondSelectedCard.elem.classList.remove('border-amber-400', 'bg-amber-400/10', 'animate-shake', 'border-rose-400');
+          secondSelectedCard.elem.classList.add('border-slate-800');
+          resetCardSelection();
+        }, 600);
+      }
+    }
+
+    function resetCardSelection() {
+      firstSelectedCard = null;
+      secondSelectedCard = null;
+      matchLocked = false;
+    }
+
+    function restartMatchGame() {
+      soundPop();
+      startMatchGame();
+    }
+
+    function finishGame() {
+      clearInterval(rushTimer);
+      soundCelebration();
+      triggerConfetti();
+
+      const earnedXp = Math.floor(currentScore / 4) + 15;
+      gainXP(earnedXp);
+
+      document.getElementById('finalScore').innerText = currentScore;
+      document.getElementById('earnedXp').innerText = `+${earnedXp} XP`;
+      document.getElementById('finalMaxCombo').innerText = maxCombo > 0 ? maxCombo : '-';
+
+      document.getElementById('resultModal').classList.remove('hidden');
+    }
+
+    function replayCurrentGame() {
+      document.getElementById('resultModal').classList.add('hidden');
+      if (currentGameMode === 'rush') startRushGame();
+      else if (currentGameMode === 'spelling') startSpellingGame();
+      else if (currentGameMode === 'match') startMatchGame();
+    }
+
+    function gainXP(amount) {
+      userStats.xp += amount;
+      const neededXP = userStats.level * 80;
+      if (userStats.xp >= neededXP) {
+        userStats.xp -= neededXP;
+        userStats.level++;
+        soundCelebration();
+      }
+      updateStatsUI();
+    }
+
+    function updateStatsUI() {
+      document.getElementById('userLevel').innerText = userStats.level;
+      const neededXP = userStats.level * 80;
+      const percent = Math.min(100, Math.floor((userStats.xp / neededXP) * 100));
+      document.getElementById('xpProgressBar').style.width = `${percent}%`;
+      document.getElementById('xpText').innerText = `${userStats.xp}/${neededXP}`;
+    }
+
+    function addToNotebook(wordObj) {
+      if (!wordObj) return;
+      const exists = userStats.notebook.find(w => w.id === wordObj.id);
+      if (!exists) {
+        userStats.notebook.unshift(wordObj);
+        updateNotebookBadge();
+      }
+    }
+
+    function updateNotebookBadge() {
+      const badge = document.getElementById('notebookBadge');
+      if (userStats.notebook.length > 0) {
+        badge.innerText = userStats.notebook.length;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    function openNotebookModal() {
+      soundPop();
+      renderNotebookList();
+      document.getElementById('notebookModal').classList.remove('hidden');
+    }
+
+    function closeNotebookModal() {
+      soundPop();
+      document.getElementById('notebookModal').classList.add('hidden');
+    }
+
+    function renderNotebookList() {
+      const container = document.getElementById('notebookList');
+      container.innerHTML = '';
+
+      if (userStats.notebook.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-8 text-slate-500 space-y-1">
+            <i class="fa-solid fa-circle-check text-2xl text-emerald-500/50"></i>
+            <p class="text-xs">生词本空空如也，继续保持！</p>
+          </div>
+        `;
+        return;
+      }
+
+      userStats.notebook.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between text-xs';
+        row.innerHTML = `
+          <div class="space-y-0.5 max-w-[80%]">
+            <div class="flex items-center gap-1.5">
+              <span class="font-black text-white font-game">${item.word}</span>
+              <span class="text-[10px] text-slate-400 font-mono">${item.phonetic}</span>
+              <button onclick="speakWord('${item.word}')" class="text-amber-400 hover:text-amber-300 p-0.5">
+                <i class="fa-solid fa-volume-high text-[10px]"></i>
+              </button>
+            </div>
+            <p class="text-[11px] text-amber-300 leading-tight">${item.meaning}</p>
+            <p class="text-[10px] text-slate-500 italic truncate">"${item.example}"</p>
+          </div>
+          <button onclick="removeFromNotebook(${item.id})" class="p-2 text-slate-500 hover:text-emerald-400">
+            <i class="fa-solid fa-check"></i>
+          </button>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function removeFromNotebook(wordId) {
+      userStats.notebook = userStats.notebook.filter(w => w.id !== wordId);
+      soundPop();
+      updateNotebookBadge();
+      renderNotebookList();
+    }
+
+    function clearNotebook() {
+      userStats.notebook = [];
+      updateNotebookBadge();
+      renderNotebookList();
+      soundPop();
+    }
+
+    function triggerConfetti() {
+      const canvas = document.getElementById('confettiCanvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const particles = [];
+      const colors = ['#f59e0b', '#10b981', '#06b6d4', '#ec4899', '#8b5cf6'];
+
+      for (let i = 0; i < 60; i++) {
+        particles.push({
+          x: canvas.width / 2,
+          y: canvas.height / 2,
+          vx: (Math.random() - 0.5) * 12,
+          vy: (Math.random() - 0.7) * 14,
+          size: Math.random() * 6 + 3,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          rotation: Math.random() * 360,
+          rotationSpeed: (Math.random() - 0.5) * 8,
+          gravity: 0.35,
+          life: 1
+        });
+      }
+
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let active = 0;
+        particles.forEach(p => {
+          if (p.life > 0) {
+            active++;
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += p.gravity;
+            p.rotation += p.rotationSpeed;
+            p.life -= 0.02;
+
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate((p.rotation * Math.PI) / 180);
+            ctx.fillStyle = p.color;
+            ctx.globalAlpha = Math.max(0, p.life);
+            ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+            ctx.restore();
+          }
+        });
+
+        if (active > 0) requestAnimationFrame(animate);
+        else ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      animate();
+    }
+
+    function shuffleArray(arr) {
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    window.addEventListener('resize', () => {
+      const canvas = document.getElementById('confettiCanvas');
+      if (canvas) {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+    });
+
+    window.onload = function() {
+      updateStatsUI();
+    };
+  </script>
+</body>
+</html>
